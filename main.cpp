@@ -1,114 +1,18 @@
 #include <cmath>
-#include <iostream>
-#include <vector>
 #include <fstream>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
-#define MONTHLY_EXTRA 0//18000//100000//30000//500000 //1000000//1500000 // 1000000//400000//4500//220000//400000
+#define MONTHLY_EXTRA 53000 // 18000//100000//30000//500000 //1000000//1500000 // 1000000//400000//4500//220000//400000
 #define UNTIL_MONTH 240
 #define SINCE_MONTH 0
-#define CREDIT 33720000
-#define YEARLY_PERCENT 13.3
-#define CREDIT_MONTHS 240
+#define CREDIT 1205000
+#define YEARLY_PERCENT 21.5
+#define CREDIT_MONTHS 36
+#define LOAN_NAME "TAB"
 
-std::ofstream fout;
-const std::string PATH = "Monthly report.txt";
-class Loan {
-public:
-    Loan(double Credit, double Percent, double M)
-    {
-        fout.open(PATH);
-        if (!fout.is_open()) {
-            std::cout << "Error Path\n";
-        }
-        _S
-            = Credit;
-        _P = (Percent / 12) / 100;
-        _N = M;
-
-        loan_money = Credit;
-        loan_yr_percent = Percent;
-        loan_months = M;
-
-        CalcX();
-    }
-    ~Loan() {
-        fout.close();
-    }
-
-    double GetP()
-    {
-        return _P;
-    }
-    double GetRest()
-    {
-        return _S;
-    }
-
-    double GetMonths()
-    {
-        return _N;
-    }
-
-    double GetMonthlyPaid()
-    {
-        return _X;
-    }
-
-    void Print()
-    {
-        std::cout << "Main Money   - " << (int)_S << "\n";
-        fout << "Main Money   - " << (int)_S << "\n";
-        std::cout            << "Loan Monthly - " << _X << "\n";
-        fout << "Loan Monthly - " << _X << "\n";
-        std::cout << "Monthly debt - " << _monthly_debt << "\n";
-        fout << "Monthly debt - " << _monthly_debt << "\n";
-    }
-
-    void CalcMonthlyDebt()
-    {
-        _monthly_debt = _S * _P;
-        // debt_sum += _monthly_debt;
-    }
-
-    void CalcDebtSum()
-    {
-        debt_sum += _monthly_debt;
-    }
-
-    void DecrMainMoney()
-    {
-        _S -= _X - _monthly_debt;
-    }
-
-    void PayMainMoney(double mny)
-    {
-        std::cout << "main\n";
-        _S -= mny;
-    }
-
-    double GetDebtSum()
-    {
-        return debt_sum;
-    }
-
-private:
-    void CalcX()
-    {
-        _X = _S * (_P + (_P / (pow((1 + _P), _N) - 1)));
-    }
-    double _P = 0;
-    double _S = 0;
-    double _N = 0;
-    double _X = 0;
-
-    double _monthly_debt = 0;
-
-    double loan_money = 0;
-    double loan_yr_percent = 0;
-    double loan_months = 0;
-
-    double debt_sum = 0;
-};
+#include "Loan.h"
 
 void UserInput(double& loan_money, double& loan_yr_percent, double& loan_months, double& extra_money)
 {
@@ -122,25 +26,56 @@ void UserInput(double& loan_money, double& loan_yr_percent, double& loan_months,
     std::cin >> extra_money;
 }
 
-int main()
+
+
+void Scheduler()
+{
+    std::stringstream out;
+    Loan loan(CREDIT, YEARLY_PERCENT, CREDIT_MONTHS, LOAN_NAME);
+    int last_month = 0;
+
+    for (int i = 1; loan.GetRest() > loan.GetMonthlyPaid(); ++i) {
+
+        out << "Month - " << i << "\n";
+        std::cout << out.str();
+        loan.ExportMSG(out.str());
+        loan.Print();
+        loan.Export();
+        if (i < UNTIL_MONTH && i >= SINCE_MONTH) {
+            loan.PayMainMoney(MONTHLY_EXTRA);
+        }
+        loan.DecrMainMoney();
+        last_month = i;
+        out.str("");
+    }
+    out << "After    " << (last_month / 12) << " years " << (last_month % 12) << " month\n";
+    std::cout << out.str();
+    loan.ExportMSG(out.str());
+    out.str("");
+
+
+    out << "Debt Sum returned to bank " << (int)loan.GetDebtSum() << "\n";
+    std::cout << out.str();
+    loan.ExportMSG(out.str());
+}
+
+void Scheduler2()
 {
 
     double loan_money = CREDIT;
     double loan_yr_percent = YEARLY_PERCENT;
     double loan_months = CREDIT_MONTHS;
     double extra_money = MONTHLY_EXTRA;
-    //UserInput(loan_money, loan_yr_percent, loan_months, extra_money);
-    Loan loan(loan_money, loan_yr_percent, loan_months);
+    // UserInput(loan_money, loan_yr_percent, loan_months, extra_money);
+    Loan loan(loan_money, loan_yr_percent, loan_months, LOAN_NAME);
     float last_month = 0;
-    loan.CalcMonthlyDebt();
+    // loan.CalcMonthlyDebt();
     loan.Print();
-
 
     for (int i = 0; loan.GetRest() >= loan.GetMonthlyPaid(); ++i) {
         std::cout << "Month - " << i + 1 << "\n";
-        fout << "Month - " << i + 1 << "\n";
         if (i == 0) {
-            //loan.PayMainMoney(6000000);
+            // loan.PayMainMoney(6000000);
         }
         if (i < UNTIL_MONTH && i >= SINCE_MONTH) {
             loan.PayMainMoney(extra_money);
@@ -149,13 +84,19 @@ int main()
         loan.CalcDebtSum();
         loan.DecrMainMoney();
         loan.Print();
+
         last_month = i;
     }
 
     std::cout << "After    " << (last_month / 12) << " years\n";
     std::cout << "Debt Sum returned to bank " << (int)loan.GetDebtSum() << "\n";
-    fout << "After    " << (last_month / 12) << " years\n";
-    fout << "Debt Sum returned to bank " << (int)loan.GetDebtSum() << " AMD\n";
+    // fout << "After    " << (last_month / 12) << " years\n";
+    // fout << "Debt Sum returned to bank " << (int)loan.GetDebtSum() << " AMD\n";
+    // Loan::Loan_Destruct();
+}
 
+int main()
+{
+    Scheduler();
     return 0;
 }
